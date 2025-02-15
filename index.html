@@ -1,0 +1,454 @@
+<html><head><base href="." /><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GAS Vocabulary Concentration</title>
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.game-container {
+    max-width: 800px;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+h1, h2 {
+    text-align: center;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.card {
+    background: #2196f3;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    min-height: 80px;
+    width: 150px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: transform 0.3s ease;
+    transform-style: preserve-3d;
+    font-size: 16px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+.card:hover {
+    transform: scale(1.05);
+}
+
+.card.flipped {
+    background: #4caf50;
+}
+
+.card.matched {
+    background: #81c784;
+    cursor: default;
+}
+
+.stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.button {
+    background: #2196f3;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.button:hover {
+    background: #1976d2;
+}
+
+@keyframes celebrate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.celebration {
+    animation: celebrate 0.5s ease;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.timer {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #2196f3;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.modal img {
+    max-width: 200px;
+    margin: 0 auto;
+    display: block;
+}
+
+.close-modal {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    font-size: 24px;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Vocabulary Concentration (Medicine)</h1>
+        <p class="subtitle">Complete this concentration game successfully and earn a Pokemon!</p>
+        <div class="stats">
+            <div>Time: <span id="timer" class="timer">00:00</span></div>
+            <div>Moves: <span id="moves">0</span></div>
+            <div>Matches: <span id="matches">0</span>/8</div>
+            <button class="button" id="reset">New Game</button>
+        </div>
+        <div class="card-grid" id="grid"></div>
+        <div class="footer">Author: Aaron Shi. Released in 2025.</div>
+    </div>
+
+    <div id="congratsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Congratulations!</h2>
+            <p id="congratsMessage"></p>
+            <img id="pokemonImage" alt="Random Pokemon celebration image" width="200" height="200">
+            <button class="button" onclick="resetGame()">Play Again</button>
+        </div>
+    </div>
+
+<script>
+const allPhrases = [
+    ["abdomen", "腹部（n.）"],
+    ["antibiotic", "抗生素（n.）"],
+    ["anesthesia", "麻醉（n.）"],
+    ["appointment", "預約（n.）"],
+    ["artery", "動脈（n.）"],
+    ["asthma", "哮喘（n.）"],
+    ["bandage", "繃帶（n.）"],
+    ["blood pressure", "血壓（n.）"],
+    ["bacteria", "細菌（n.）"],
+    ["benign", "良性的（adj.）"],
+    ["biopsy", "活檢（n.）"],
+    ["bladder", "膀胱（n.）"],
+    ["brain", "大腦（n.）"],
+    ["cancer", "癌症（n.）"],
+    ["cardiac", "心臟的（adj.）"],
+    ["cardiologist", "心臟科醫生（n.）"],
+    ["caregiver", "照護者（n.）"],
+    ["cavity", "蛀牙；空洞（n.）"],
+    ["chronic", "慢性的（adj.）"],
+    ["clinic", "診所（n.）"],
+    ["cough", "咳嗽（v./n.）"],
+    ["consultation", "諮詢（n.）"],
+    ["contagious", "傳染性的（adj.）"],
+    ["coronavirus", "冠狀病毒（n.）"],
+    ["diagnosis", "診斷（n.）"],
+    ["doctor", "醫生（n.）"],
+    ["dose", "劑量（n.）"],
+    ["emergency", "急診（n.）"],
+    ["fever", "發燒（n.）"],
+    ["fluid", "液體（n.）"],
+    ["fracture", "骨折（n.）"],
+    ["healthcare", "醫療保健（n.）"],
+    ["heart attack", "心臟病發作（n.）"],
+    ["hernia", "疝氣（n.）"],
+    ["hospital", "醫院（n.）"],
+    ["hygiene", "衛生（n.）"],
+    ["infection", "感染（n.）"],
+    ["inflammation", "發炎（n.）"],
+    ["injury", "受傷（n.）"],
+    ["inoculation", "接種（n.）"],
+    ["insurance", "保險（n.）"],
+    ["intensive care unit", "加護病房（n.）"],
+    ["intravenous", "靜脈注射的（adj.）"],
+    ["injection", "注射（n.）"],
+    ["joint", "關節（n.）"],
+    ["liver", "肝臟（n.）"],
+    ["lung", "肺（n.）"],
+    ["medication", "藥物（n.）"],
+    ["mental health", "心理健康（n.）"],
+    ["microbe", "微生物（n.）"],
+    ["nurse", "護士（n.）"],
+    ["nausea", "噁心（n.）"],
+    ["nutrition", "營養（n.）"],
+    ["obesity", "肥胖（n.）"],
+    ["onset", "開始（n.）"],
+    ["operation", "手術（n.）"],
+    ["oral", "口服的（adj.）"],
+    ["orthopedic", "骨科的（adj.）"],
+    ["patient", "病人（n.）"],
+    ["pediatrician", "小兒科醫生（n.）"],
+    ["pharmacist", "藥師（n.）"],
+    ["prescription", "處方（n.）"],
+    ["procedure", "手術過程；程序（n.）"],
+    ["recovery", "康復（n.）"],
+    ["reception", "接待（n.）"],
+    ["referral", "轉診（n.）"],
+    ["respiratory", "呼吸的（adj.）"],
+    ["severe", "嚴重的（adj.）"],
+    ["surgery", "外科手術（n.）"],
+    ["symptom", "症狀（n.）"],
+    ["therapy", "治療（n.）"],
+    ["treatment", "治療（n.）"],
+    ["vaccine", "疫苗（n.）"],
+    ["vaccine dose", "疫苗劑量（n.）"],
+    ["virus", "病毒（n.）"],
+    ["vomiting", "嘔吐（n.）"],
+    ["wound", "傷口（n.）"],
+    ["X-ray", "X光（n.）"],
+    ["Zika virus", "茲卡病毒（n.）"],
+    ["allergy", "過敏（n.）"],
+    ["anxiety", "焦慮（n.）"],
+    ["aromatherapy", "芳香療法（n.）"],
+    ["asthmatic", "哮喘的（adj.）"],
+    ["autoimmune", "自體免疫的（adj.）"],
+    ["cardiovascular", "心血管的（adj.）"],
+    ["chronic disease", "慢性病（n.）"],
+    ["clot", "血塊（n.）"],
+    ["consultation fee", "諮詢費（n.）"],
+    ["cyst", "囊腫（n.）"],
+    ["dehydration", "脫水（n.）"],
+    ["defibrillator", "去顫器（n.）"],
+    ["detoxification", "解毒（n.）"],
+    ["disease", "疾病（n.）"],
+    ["dizziness", "頭暈（n.）"],
+    ["drug resistance", "抗藥性（n.）"],
+    ["epidemic", "流行病（n.）"],
+    ["fatigue", "疲勞（n.）"],
+    ["feverish", "發燒的（adj.）"],
+    ["germ", "細菌；病菌（n.）"],
+    ["hand sanitizer", "乾洗手（n.）"],
+    ["heart disease", "心臟病（n.）"],
+    ["hypothermia", "低體溫（n.）"],
+    ["immunization", "免疫接種（n.）"],
+    ["incubation period", "潛伏期（n.）"],
+    ["infection control", "感染控制（n.）"],
+    ["malnutrition", "營養不良（n.）"],
+    ["medicinal", "藥用的（adj.）"],
+    ["pathogen", "病原體（n.）"],
+    ["physical therapy", "物理治療（n.）"],
+    ["plasma", "血漿（n.）"],
+    ["recovery room", "復甦室（n.）"],
+    ["rehabilitation", "復健（n.）"],
+    ["respirator", "呼吸器（n.）"],
+    ["sedative", "鎮定劑（n.）"],
+    ["side effects", "副作用（n.）"],
+    ["stethoscope", "聽診器（n.）"],
+    ["stress management", "壓力管理（n.）"],
+    ["stroke", "中風（n.）"],
+    ["syringe", "注射器（n.）"],
+    ["tinnitus", "耳鳴（n.）"],
+    ["treatment plan", "治療計劃（n.）"],
+    ["urgent care", "緊急醫療（n.）"],
+    ["vitamin", "維他命（n.）"],
+    ["wellness", "健康（n.）"]
+];
+
+
+let phrases = [];
+let flippedCards = [];
+let matchedPairs = 0;
+let moves = 0;
+let cards = [];
+let timeStarted = false;
+let timerInterval;
+let seconds = 0;
+
+function selectRandomPhrases() {
+    const shuffledPhrases = [...allPhrases].sort(() => Math.random() - 0.5);
+    return shuffledPhrases.slice(0, 8);
+}
+
+function updateTimer() {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    document.getElementById('timer').textContent = 
+        `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    seconds++;
+}
+
+function startTimer() {
+    if (!timeStarted) {
+        timeStarted = true;
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+    timeStarted = false;
+}
+
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function createCard(content, index) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.textContent = '?';
+    card.dataset.index = index;
+    card.dataset.content = content;
+    card.addEventListener('click', () => {
+        startTimer();
+        flipCard(card);
+    });
+    return card;
+}
+
+function flipCard(card) {
+    if (flippedCards.length === 2 || card.classList.contains('matched') || 
+        flippedCards.includes(card)) return;
+
+    card.textContent = card.dataset.content;
+    card.classList.add('flipped');
+    flippedCards.push(card);
+
+    if (flippedCards.length === 2) {
+        moves++;
+        document.getElementById('moves').textContent = moves;
+        checkMatch();
+    }
+}
+
+function checkMatch() {
+    const [card1, card2] = flippedCards;
+    const pair1 = phrases.find(pair => pair.includes(card1.dataset.content));
+    const isMatch = pair1 && pair1.includes(card2.dataset.content);
+
+    setTimeout(() => {
+        if (isMatch) {
+            card1.classList.add('matched');
+            card2.classList.add('matched');
+            matchedPairs++;
+            document.getElementById('matches').textContent = matchedPairs;
+            if (matchedPairs === 8) {
+                stopTimer();
+                celebrate();
+            }
+        } else {
+            card1.textContent = '?';
+            card2.textContent = '?';
+            card1.classList.remove('flipped');
+            card2.classList.remove('flipped');
+        }
+        flippedCards = [];
+    }, 1000);
+}
+
+async function celebrate() {
+    const container = document.querySelector('.game-container');
+    container.classList.add('celebration');
+    
+    const pokemonId = Math.floor(Math.random() * 898) + 1;
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
+    const data = await response.json();
+    
+    const currentDate = new Date().toLocaleDateString();
+    const finalTime = document.getElementById('timer').textContent;
+    const congratsMessage = `You spent ${finalTime} and took ${moves} moves to finish this vocabulary concentration on ${currentDate}. You've won ${data.name.charAt(0).toUpperCase() + data.name.slice(1)}!`;
+    
+    document.getElementById('congratsMessage').textContent = congratsMessage;
+    document.getElementById('pokemonImage').src = data.sprites.front_default;
+    document.getElementById('congratsModal').style.display = 'block';
+}
+
+function resetGame() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    flippedCards = [];
+    matchedPairs = 0;
+    moves = 0;
+    seconds = 0;
+    document.getElementById('moves').textContent = moves;
+    document.getElementById('matches').textContent = matchedPairs;
+    document.getElementById('timer').textContent = '00:00';
+    document.getElementById('congratsModal').style.display = 'none';
+    stopTimer();
+    
+    phrases = selectRandomPhrases();
+    cards = [];
+    phrases.forEach(pair => {
+        cards.push(pair[0], pair[1]);
+    });
+    cards = shuffle(cards);
+    
+    cards.forEach((content, index) => {
+        const card = createCard(content, index);
+        grid.appendChild(card);
+    });
+
+    const container = document.querySelector('.game-container');
+    container.classList.remove('celebration');
+}
+
+document.getElementById('reset').addEventListener('click', resetGame);
+document.querySelector('.close-modal').addEventListener('click', () => {
+    document.getElementById('congratsModal').style.display = 'none';
+});
+
+// Initialize the game
+resetGame();
+</script>
+</body></html>
